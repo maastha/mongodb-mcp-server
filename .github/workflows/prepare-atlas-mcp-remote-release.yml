@@ -92,4 +92,9 @@ jobs:
           # TEST-ONLY (was): GH_TOKEN: ${{ steps.app-token.outputs.token }}
           GH_TOKEN: ${{ secrets.GH_PAT }} # TEST-ONLY
         run: |
-          gh pr merge ${{ steps.create-pr.outputs.pull-request-number }} --auto --squash
+          # TEST-ONLY (was): gh pr merge ... --auto --squash
+          # --auto dropped: on the fork the PR often has no required status checks blocking it,
+          # so it settles into GitHub's "clean" (immediately mergeable) state, and the API then
+          # rejects enablePullRequestAutoMerge with "Pull request is in clean status". Merge
+          # directly instead.
+          gh pr merge ${{ steps.create-pr.outputs.pull-request-number }} --squash
