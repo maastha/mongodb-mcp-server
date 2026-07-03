@@ -16,11 +16,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
-      - uses: mongodb-js/devtools-shared/actions/setup-bot-token@main
-        id: app-token
-        with:
-          app-id: ${{ vars.DEVTOOLS_BOT_APP_ID }}
-          private-key: ${{ secrets.DEVTOOLS_BOT_PRIVATE_KEY }}
+      # TEST-ONLY: the org bot app token isn't available in a fork — replaced by the GH_PAT secret in the steps below.
+      # TEST-ONLY (was):
+      # - uses: mongodb-js/devtools-shared/actions/setup-bot-token@main
+      #   id: app-token
+      #   with:
+      #     app-id: ${{ vars.DEVTOOLS_BOT_APP_ID }}
+      #     private-key: ${{ secrets.DEVTOOLS_BOT_PRIVATE_KEY }}
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
@@ -129,7 +131,8 @@ jobs:
           HUSKY: 0
         with:
           title: "chore: release mongodb-mcp-server ${{ steps.bump-version.outputs.NEW_VERSION }}"
-          token: ${{ steps.app-token.outputs.token }}
+          # TEST-ONLY (was): token: ${{ steps.app-token.outputs.token }}
+          token: ${{ secrets.GH_PAT }} # TEST-ONLY: PAT so the PR + merge push trigger downstream workflows (GITHUB_TOKEN would not)
           commit-message: "chore: release mongodb-mcp-server ${{ steps.bump-version.outputs.NEW_VERSION }}"
           body: |
             This PR bumps the package version to ${{ steps.bump-version.outputs.NEW_VERSION }}.
@@ -140,10 +143,18 @@ jobs:
             ${{ steps.jira-status.outputs.JIRA_STATUS }}
           base: main
           branch: chore_release_${{ steps.bump-version.outputs.NEW_VERSION }}
-          author: "${{ steps.app-token.outputs.app-slug}}[bot] <${{ steps.app-token.outputs.app-email }}>"
-          committer: "${{ steps.app-token.outputs.app-slug}}[bot] <${{ steps.app-token.outputs.app-email }}>"
+          # TEST-ONLY (was): author/committer sourced from the bot app token
+          author: "maastha <aastha.mahendru@mongodb.com>" # TEST-ONLY
+          committer: "maastha <aastha.mahendru@mongodb.com>" # TEST-ONLY
       - name: Set auto merge
         env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          # TEST-ONLY (was): GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GH_TOKEN: ${{ secrets.GH_PAT }} # TEST-ONLY
         run: |
-          gh pr merge ${{ steps.create-pr.outputs.pull-request-number }} --auto --squash
+          # TEST-ONLY (was): gh pr merge ... --auto --squash
+          # --auto dropped: on the fork the PR often has no required status checks blocking it,
+          # so it settles into GitHub's "clean" (immediately mergeable) state, and the API then
+          # rejects enablePullRequestAutoMerge with "Pull request is in clean status". Merge
+          # directly instead — the auto-merge arming behavior is already covered by the
+          # atlas-mcp-remote release workflow test.
+          gh pr merge ${{ steps.create-pr.outputs.pull-request-number }} --squash
