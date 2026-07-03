@@ -16,11 +16,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@bf82d13b9b10051d224345ab9184f5ede0a94289 # v1
-      - uses: mongodb-js/devtools-shared/actions/setup-bot-token@04e390e1e6157b3edbc120f3d9359d3fb47ab839 # main
-        id: app-token
-        with:
-          app-id: ${{ vars.DEVTOOLS_BOT_APP_ID }}
-          private-key: ${{ secrets.DEVTOOLS_BOT_PRIVATE_KEY }}
+      # TEST-ONLY: the org bot app token isn't available in a fork — replaced by the GH_PAT secret in the steps below.
+      # TEST-ONLY (was):
+      # - uses: mongodb-js/devtools-shared/actions/setup-bot-token@04e390e1e6157b3edbc120f3d9359d3fb47ab839 # main
+      #   id: app-token
+      #   with:
+      #     app-id: ${{ vars.DEVTOOLS_BOT_APP_ID }}
+      #     private-key: ${{ secrets.DEVTOOLS_BOT_PRIVATE_KEY }}
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
           fetch-depth: 0
@@ -47,7 +49,7 @@ jobs:
         id: version-check
         continue-on-error: true
         env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GH_TOKEN: ${{ github.token }} # TEST-ONLY (was): ${{ steps.app-token.outputs.token }} — read-only lookup, default token is enough
           NEW_VERSION: ${{ steps.bump-version.outputs.NEW_VERSION }}
         run: |
           set -euo pipefail
@@ -72,7 +74,8 @@ jobs:
           HUSKY: 0
         with:
           title: "chore: release mongodb-atlas-mcp-remote ${{ steps.bump-version.outputs.NEW_VERSION }}"
-          token: ${{ steps.app-token.outputs.token }}
+          # TEST-ONLY (was): token: ${{ steps.app-token.outputs.token }}
+          token: ${{ secrets.GH_PAT }} # TEST-ONLY: PAT so the PR + merge push trigger downstream workflows (GITHUB_TOKEN would not)
           commit-message: "chore: release mongodb-atlas-mcp-remote ${{ steps.bump-version.outputs.NEW_VERSION }}"
           body: |
             This PR bumps the `mongodb-atlas-mcp-remote` package version to ${{ steps.bump-version.outputs.NEW_VERSION }}.
@@ -81,10 +84,12 @@ jobs:
             ${{ steps.version-check.outputs.VERSION_WARNING }}
           base: main
           branch: chore_release_atlas-mcp-remote_${{ steps.bump-version.outputs.NEW_VERSION }}
-          author: "${{ steps.app-token.outputs.app-slug}}[bot] <${{ steps.app-token.outputs.app-email }}>"
-          committer: "${{ steps.app-token.outputs.app-slug}}[bot] <${{ steps.app-token.outputs.app-email }}>"
+          # TEST-ONLY (was): author/committer sourced from the bot app token
+          author: "maastha <aastha.mahendru@mongodb.com>" # TEST-ONLY
+          committer: "maastha <aastha.mahendru@mongodb.com>" # TEST-ONLY
       - name: Set auto merge
         env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          # TEST-ONLY (was): GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GH_TOKEN: ${{ secrets.GH_PAT }} # TEST-ONLY
         run: |
           gh pr merge ${{ steps.create-pr.outputs.pull-request-number }} --auto --squash
