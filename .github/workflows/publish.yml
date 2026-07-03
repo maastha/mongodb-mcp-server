@@ -134,7 +134,8 @@ jobs:
       id-token: write
     needs:
       - check
-    if: needs.check.outputs.VERSION_EXISTS == 'false'
+    # TEST-ONLY (was): if: needs.check.outputs.VERSION_EXISTS == 'false'
+    if: false # TEST-ONLY: don't publish the server from the fork (cascades to skip docker-push/mcp-publish/jira-release)
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
       - uses: actions/checkout@v7
@@ -257,7 +258,8 @@ jobs:
       - check
     # below condition can be removed once the first version of this package has been
     # published to npm manually, see https://jira.mongodb.org/browse/MCP-493
-    if: needs.check.outputs.REMOTE_VERSION_EXISTS == 'false' && needs.check.outputs.REMOTE_PACKAGE_EXISTS_ON_NPM == 'true' && needs.check.outputs.REMOTE_NPM_VERSION != '0.0.0'
+    # TEST-ONLY (was): if: needs.check.outputs.REMOTE_VERSION_EXISTS == 'false' && needs.check.outputs.REMOTE_PACKAGE_EXISTS_ON_NPM == 'true' && needs.check.outputs.REMOTE_NPM_VERSION != '0.0.0'
+    if: needs.check.outputs.REMOTE_VERSION_EXISTS == 'false' && needs.check.outputs.REMOTE_NPM_VERSION != '0.0.0' # TEST-ONLY: dropped REMOTE_PACKAGE_EXISTS_ON_NPM so the job runs before the first real npm publish exists
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
       - uses: actions/checkout@v7
@@ -271,7 +273,8 @@ jobs:
           pnpm install --frozen-lockfile
           pnpm --filter 'mongodb-atlas-mcp-remote' run compile
       - name: Publish to NPM
-        run: pnpm --filter 'mongodb-atlas-mcp-remote' publish --tag ${{ needs.check.outputs.REMOTE_RELEASE_CHANNEL }} --no-git-checks
+        # TEST-ONLY (was): run: pnpm --filter 'mongodb-atlas-mcp-remote' publish --tag ${{ needs.check.outputs.REMOTE_RELEASE_CHANNEL }} --no-git-checks
+        run: pnpm --filter 'mongodb-atlas-mcp-remote' publish --tag ${{ needs.check.outputs.REMOTE_RELEASE_CHANNEL }} --no-git-checks --dry-run # TEST-ONLY: --dry-run, nothing is actually published to npm
 
       - name: Publish GitHub release
         env:
@@ -286,8 +289,10 @@ jobs:
             --target ${{ github.sha }} \
             ${{ (needs.check.outputs.REMOTE_RELEASE_CHANNEL != 'latest' && '--prerelease') || ''}}
 
-      - name: Wait for package to be available on npm
-        uses: ./.github/actions/wait-for-npm
-        with:
-          package-name: mongodb-atlas-mcp-remote
-          package-version: ${{ needs.check.outputs.REMOTE_NPM_VERSION }}
+      # TEST-ONLY: removed the "Wait for package to be available on npm" step — with --dry-run nothing is published, so it would poll for ~5 min and then fail.
+      # TEST-ONLY (was):
+      # - name: Wait for package to be available on npm
+      #   uses: ./.github/actions/wait-for-npm
+      #   with:
+      #     package-name: mongodb-atlas-mcp-remote
+      #     package-version: ${{ needs.check.outputs.REMOTE_NPM_VERSION }}
