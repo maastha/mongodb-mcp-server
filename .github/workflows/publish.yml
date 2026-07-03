@@ -137,6 +137,11 @@ jobs:
     # TEST-ONLY (was): if: needs.check.outputs.VERSION_EXISTS == 'false'
     if: false # TEST-ONLY: don't publish the server from the fork (cascades to skip docker-push/mcp-publish/jira-release)
     steps:
+      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
       - uses: ./.github/actions/setup-node-pnpm
 
       - name: Build
@@ -256,6 +261,11 @@ jobs:
     # TEST-ONLY (was): if: needs.check.outputs.REMOTE_VERSION_EXISTS == 'false' && needs.check.outputs.REMOTE_PACKAGE_EXISTS_ON_NPM == 'true' && needs.check.outputs.REMOTE_NPM_VERSION != '0.0.0'
     if: needs.check.outputs.REMOTE_VERSION_EXISTS == 'false' && needs.check.outputs.REMOTE_NPM_VERSION != '0.0.0' # TEST-ONLY: dropped REMOTE_PACKAGE_EXISTS_ON_NPM so the job runs before the first real npm publish exists
     steps:
+      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
       - uses: ./.github/actions/setup-node-pnpm
 
       - name: Build
